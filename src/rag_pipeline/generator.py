@@ -1,9 +1,12 @@
+import json
 import ollama
+import weave
 from pydantic import BaseModel, Field
 from .retrieval import retrieve
 
-
 GENERATE_MODEL = "llama3.2"
+
+weave.init("rag-pipeline")
 
 
 class RAGResponse(BaseModel):
@@ -13,8 +16,24 @@ class RAGResponse(BaseModel):
     action: str
 
 
+@weave.op()
+def retrieve_context(query: str) -> list[dict]:
+    return retrieve(query, top_k=3)
+
+
+@weave.op()
+def call_llm(prompt: str) -> str:
+    response = ollama.chat(
+        model=GENERATE_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        format="json"
+    )
+    return response.message.content
+
+
+@weave.op()
 def generate(query: str) -> RAGResponse:
-    results = retrieve(query, top_k=3)
+    results = retrieve_context(query)
 
     if not results:
         return RAGResponse(
@@ -42,14 +61,7 @@ Query: {query}
 
 JSON response:"""
 
-    response = ollama.chat(
-        model=GENERATE_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        format="json"
-    )
-
-    import json
-    raw = json.loads(response.message.content)
+    raw = json.loads(call_llm(prompt))
 
     return RAGResponse(
         answer=raw.get("answer", ""),
