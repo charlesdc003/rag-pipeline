@@ -6,7 +6,6 @@ from .retrieval import retrieve
 
 GENERATE_MODEL = "llama3.2"
 
-weave.init("rag-pipeline")
 
 
 class RAGResponse(BaseModel):
@@ -32,16 +31,10 @@ def call_llm(prompt: str) -> str:
 
 
 @weave.op()
+@weave.op()
 def generate(query: str) -> RAGResponse:
+    weave.init("rag-pipeline")
     results = retrieve_context(query)
-
-    if not results:
-        return RAGResponse(
-            answer="No relevant context found.",
-            confidence=0.0,
-            sources_used=0,
-            action="escalate"
-        )
 
     avg_similarity = sum(r["similarity"] for r in results) / len(results)
     context = "\n\n".join(r["content"] for r in results)
