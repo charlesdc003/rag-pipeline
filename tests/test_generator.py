@@ -31,9 +31,10 @@ def test_rag_response_rejects_bad_confidence():
         )
 
 
+@patch("weave.init")
 @patch("src.rag_pipeline.generator.retrieve_context")
 @patch("src.rag_pipeline.generator.call_llm")
-def test_generate_returns_escalate(mock_llm, mock_retrieve):
+def test_generate_returns_escalate(mock_llm, mock_retrieve, mock_weave):
     import json
     mock_retrieve.return_value = make_mock_results()
     mock_llm.return_value = json.dumps({
